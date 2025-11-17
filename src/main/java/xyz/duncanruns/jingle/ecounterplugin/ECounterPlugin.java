@@ -86,7 +86,15 @@ public class ECounterPlugin {
             // Enable: make thin and show counter
             boolean resized = Resizing.toggleResize(THIN_WIDTH, THIN_HEIGHT);
             if (resized) {
+                // Wait a bit for the resize to complete
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    // Ignore
+                }
+
                 // Show counter window (user can position it manually)
+                counterWindow.resetDebugMode(); // Reset debug to get fresh logs
                 counterWindow.setVisible(true);
                 isActive = true;
                 Jingle.log(Level.INFO, "(E-Counter Plugin) Enabled - thin mode + counter active");

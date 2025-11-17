@@ -97,18 +97,34 @@ public class ECounterWindow extends JFrame {
                 return;
             }
 
-            // Get window information for debugging
+            // Get window information and validate
+            char[] buffer = new char[512];
+            User32.INSTANCE.GetWindowText(hwnd, buffer, 512);
+            String windowTitle = new String(buffer).trim();
+
+            // Get window dimensions
+            RECT clientRect = new RECT();
+            User32.INSTANCE.GetClientRect(hwnd, clientRect);
+            int clientWidth = clientRect.right - clientRect.left;
+            int clientHeight = clientRect.bottom - clientRect.top;
+
+            // Validate that this looks like a Minecraft window
+            if (!windowTitle.toLowerCase().contains("minecraft")) {
+                if (debugMode) {
+                    Jingle.log(org.apache.logging.log4j.Level.WARN,
+                        String.format("(E-Counter) WARNING: Window title doesn't contain 'Minecraft': '%s'", windowTitle));
+                }
+            }
+
+            // Check if window is in thin mode (approximately 400 wide)
+            if (Math.abs(clientWidth - 400) > 50) {
+                if (debugMode) {
+                    Jingle.log(org.apache.logging.log4j.Level.WARN,
+                        String.format("(E-Counter) WARNING: Window width is %d, expected ~400 for thin mode", clientWidth));
+                }
+            }
+
             if (debugMode) {
-                char[] buffer = new char[512];
-                User32.INSTANCE.GetWindowText(hwnd, buffer, 512);
-                String windowTitle = new String(buffer).trim();
-
-                // Get window dimensions
-                RECT clientRect = new RECT();
-                User32.INSTANCE.GetClientRect(hwnd, clientRect);
-                int clientWidth = clientRect.right - clientRect.left;
-                int clientHeight = clientRect.bottom - clientRect.top;
-
                 // Get window position on screen
                 RECT windowRect = new RECT();
                 User32.INSTANCE.GetWindowRect(hwnd, windowRect);
@@ -119,11 +135,15 @@ public class ECounterWindow extends JFrame {
                 ExtendedUser32.INSTANCE.ClientToScreen(hwnd, topLeft);
                 topLeft.read();
 
+                // Check if this is the foreground window
+                HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
+                boolean isForeground = hwnd.equals(foregroundWindow);
+
                 Jingle.log(org.apache.logging.log4j.Level.INFO,
-                    String.format("(E-Counter) Window: '%s' | Client size: %dx%d | Window rect: (%d,%d)-(%d,%d) | Client top-left screen pos: (%d,%d)",
+                    String.format("(E-Counter) Window: '%s' | Client: %dx%d | Rect: (%d,%d)-(%d,%d) | ClientTopLeft: (%d,%d) | Foreground: %s",
                         windowTitle, clientWidth, clientHeight,
                         windowRect.left, windowRect.top, windowRect.right, windowRect.bottom,
-                        topLeft.x, topLeft.y));
+                        topLeft.x, topLeft.y, isForeground));
             }
 
             // Convert client coordinates to screen coordinates
@@ -209,5 +229,9 @@ public class ECounterWindow extends JFrame {
         int windowWidth = (int) (captureWidth * zoom);
         int windowHeight = (int) (captureHeight * zoom) + 30;
         setSize(windowWidth, windowHeight);
+    }
+
+    public void resetDebugMode() {
+        this.debugMode = true;
     }
 }
