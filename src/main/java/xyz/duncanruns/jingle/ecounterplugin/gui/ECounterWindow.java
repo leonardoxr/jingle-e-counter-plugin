@@ -2,6 +2,8 @@ package xyz.duncanruns.jingle.ecounterplugin.gui;
 
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.platform.win32.WinDef.RECT;
+import com.sun.jna.platform.win32.WinDef.POINT;
+import com.sun.jna.platform.win32.User32;
 import xyz.duncanruns.jingle.Jingle;
 import xyz.duncanruns.jingle.instance.OpenedInstance;
 
@@ -13,6 +15,7 @@ import java.util.Optional;
 public class ECounterWindow extends JFrame {
     private JLabel displayLabel;
     private Robot robot;
+    private boolean debugMode = true; // Enable debug logging initially
 
     // Capture settings - based on waywall configuration
     private int captureX = 13;  // X position relative to Minecraft window
@@ -86,13 +89,47 @@ public class ECounterWindow extends JFrame {
         HWND hwnd = instance.hwnd;
 
         try {
-            // Get Minecraft window bounds using JNA's native User32
-            RECT rect = new RECT();
-            com.sun.jna.platform.win32.User32.INSTANCE.GetWindowRect(hwnd, rect);
+            // Verify the window is valid and visible
+            if (!User32.INSTANCE.IsWindow(hwnd) || !User32.INSTANCE.IsWindowVisible(hwnd)) {
+                if (debugMode) {
+                    Jingle.log(org.apache.logging.log4j.Level.WARN, "(E-Counter) Window not valid or not visible");
+                }
+                return;
+            }
 
-            // Calculate the screen position to capture (top-left of Minecraft window)
-            int screenX = rect.left + captureX;
-            int screenY = rect.top + captureY;
+            // Get window information for debugging
+            if (debugMode) {
+                char[] buffer = new char[512];
+                User32.INSTANCE.GetWindowText(hwnd, buffer, 512);
+                String windowTitle = new String(buffer).trim();
+
+                // Get window dimensions
+                RECT windowRect = new RECT();
+                User32.INSTANCE.GetClientRect(hwnd, windowRect);
+                int clientWidth = windowRect.right - windowRect.left;
+                int clientHeight = windowRect.bottom - windowRect.top;
+
+                Jingle.log(org.apache.logging.log4j.Level.INFO,
+                    String.format("(E-Counter) Capturing from window: '%s' (Client: %dx%d)",
+                        windowTitle, clientWidth, clientHeight));
+                debugMode = false; // Only log once to avoid spam
+            }
+
+            // Convert client coordinates to screen coordinates
+            // The captureX/captureY are relative to the game's client area (not including title bar)
+            POINT clientPoint = new POINT(captureX, captureY);
+            User32.INSTANCE.ClientToScreen(hwnd, clientPoint);
+
+            // Verify the converted coordinates are reasonable (on screen)
+            if (clientPoint.x < 0 || clientPoint.y < 0) {
+                Jingle.log(org.apache.logging.log4j.Level.WARN,
+                    "(E-Counter) Invalid screen coordinates: " + clientPoint.x + ", " + clientPoint.y);
+                return;
+            }
+
+            // Now clientPoint contains the screen coordinates
+            int screenX = clientPoint.x;
+            int screenY = clientPoint.y;
 
             // Capture the screen region
             BufferedImage capture = robot.createScreenCapture(
