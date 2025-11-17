@@ -4,24 +4,39 @@ A Jingle plugin that displays entity counts in a thin, easy-to-read window.
 
 ## Features
 
-- **Screen Capture & Zoom**: Captures the F3 entity counter ("E: 0/1") from the top-left of your Minecraft window and zooms it in
-- **Thin Window Display**: A compact window similar to Jingle's "Thin BT" feature
-- **3x Zoom Factor**: Entity count displayed at 3x size for easy visibility at a glance
+- **Dual-Window Setup**: Makes your Minecraft window thin (like "Thin BT") AND shows a zoomed entity counter beside it
+- **Thin Minecraft Window**: Resizes Minecraft to 400px width for a narrow view
+- **Screen Capture & Zoom**: Captures the F3 entity counter ("E: 0/1") and zooms it 5x
+- **Auto-Positioning**: Counter window automatically appears beside the thin Minecraft window
 - **Crisp Pixel Scaling**: Uses nearest-neighbor interpolation for sharp, readable text
-- **Hotkey Toggle**: Show/hide the counter window with a customizable hotkey
-- **Real-time Updates**: Screen capture updates every tick while the window is visible
-- **Always on Top**: Window stays on top of other applications for easy monitoring
+- **Hotkey Toggle**: Single hotkey enables/disables both thin mode and counter window
+- **Auto-Restore**: Minecraft window automatically restored to original size when toggled off or on reset
+- **Real-time Updates**: Screen capture updates every tick while active
+- **Always on Top**: Counter window stays on top for easy monitoring
 
 ## How It Works
 
-The plugin captures a small region (80x20 pixels) from the top-left corner of your Minecraft window where the F3 debug screen shows "E: 0/1" (entity count). This region is then scaled up 3x and displayed in a small window, making it easy to monitor entity counts without opening the full F3 screen.
+When you press the hotkey:
+1. **Minecraft window is resized** to 400px width (thin mode, like "Thin BT")
+2. **Counter window appears** to the right of the thin Minecraft window
+3. **Entity counter is captured** from the top-left of Minecraft where F3 shows "E: 0/1"
+4. **Image is zoomed** 5x and displayed in real-time
+
+When you toggle off, the Minecraft window is restored to its original size and the counter window is hidden.
 
 ## Configuration
 
-You can adjust the capture region and zoom in `ECounterWindow.java`:
-- `captureX`, `captureY`: Position relative to Minecraft window (default: 10, 10)
-- `captureWidth`, `captureHeight`: Size of capture region (default: 80x20)
-- `zoomFactor`: How much to zoom in (default: 3.0)
+You can adjust the settings in the code:
+
+**In `ECounterPlugin.java`:**
+- `THIN_WIDTH`: Width of thin Minecraft window (default: 400px)
+
+**In `ECounterWindow.java`:**
+- `captureX`, `captureY`: Position relative to Minecraft window (default: 13, 37)
+- `captureWidth`, `captureHeight`: Size of capture region (default: 37x9)
+- `zoomFactor`: How much to zoom in (default: 5.0)
+
+These values are based on the standard F3 debug screen layout and match those used in waywall configurations.
 
 ## Developing
 

@@ -10,12 +10,12 @@ public class ECounterWindow extends JFrame {
     private JLabel displayLabel;
     private Robot robot;
 
-    // Capture settings - adjust these to match your screen
-    private int captureX = 10;  // X position relative to Minecraft window
-    private int captureY = 10;  // Y position relative to Minecraft window
-    private int captureWidth = 80;  // Width of region to capture (where "E: 0/1" appears)
-    private int captureHeight = 20; // Height of region to capture
-    private double zoomFactor = 3.0; // How much to zoom in
+    // Capture settings - based on waywall configuration
+    private int captureX = 13;  // X position relative to Minecraft window
+    private int captureY = 37;  // Y position relative to Minecraft window
+    private int captureWidth = 37;  // Width of region to capture (where "E: 0/1" appears)
+    private int captureHeight = 9; // Height of region to capture
+    private double zoomFactor = 5.0; // How much to zoom in (5x like waywall)
 
     public ECounterWindow() {
         super("E-Counter");
