@@ -118,7 +118,7 @@ public class ECounterWindow extends JFrame {
             // Convert client coordinates to screen coordinates
             // The captureX/captureY are relative to the game's client area (not including title bar)
             POINT clientPoint = new POINT(captureX, captureY);
-            User32.INSTANCE.ClientToScreen(hwnd, clientPoint);
+            ExtendedUser32.INSTANCE.ClientToScreen(hwnd, clientPoint);
 
             // Verify the converted coordinates are reasonable (on screen)
             if (clientPoint.x < 0 || clientPoint.y < 0) {
