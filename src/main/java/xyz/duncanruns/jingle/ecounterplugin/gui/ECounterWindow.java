@@ -104,21 +104,43 @@ public class ECounterWindow extends JFrame {
                 String windowTitle = new String(buffer).trim();
 
                 // Get window dimensions
+                RECT clientRect = new RECT();
+                User32.INSTANCE.GetClientRect(hwnd, clientRect);
+                int clientWidth = clientRect.right - clientRect.left;
+                int clientHeight = clientRect.bottom - clientRect.top;
+
+                // Get window position on screen
                 RECT windowRect = new RECT();
-                User32.INSTANCE.GetClientRect(hwnd, windowRect);
-                int clientWidth = windowRect.right - windowRect.left;
-                int clientHeight = windowRect.bottom - windowRect.top;
+                User32.INSTANCE.GetWindowRect(hwnd, windowRect);
+
+                // Get top-left corner of client area in screen coordinates
+                POINT topLeft = new POINT(0, 0);
+                ExtendedUser32.INSTANCE.ClientToScreen(hwnd, topLeft);
 
                 Jingle.log(org.apache.logging.log4j.Level.INFO,
-                    String.format("(E-Counter) Capturing from window: '%s' (Client: %dx%d)",
-                        windowTitle, clientWidth, clientHeight));
-                debugMode = false; // Only log once to avoid spam
+                    String.format("(E-Counter) Window: '%s' | Client size: %dx%d | Window rect: (%d,%d)-(%d,%d) | Client top-left screen pos: (%d,%d)",
+                        windowTitle, clientWidth, clientHeight,
+                        windowRect.left, windowRect.top, windowRect.right, windowRect.bottom,
+                        topLeft.x, topLeft.y));
             }
 
             // Convert client coordinates to screen coordinates
             // The captureX/captureY are relative to the game's client area (not including title bar)
             POINT clientPoint = new POINT(captureX, captureY);
+
+            if (debugMode) {
+                Jingle.log(org.apache.logging.log4j.Level.INFO,
+                    String.format("(E-Counter) Client coords: (%d,%d)", clientPoint.x, clientPoint.y));
+            }
+
             ExtendedUser32.INSTANCE.ClientToScreen(hwnd, clientPoint);
+
+            if (debugMode) {
+                Jingle.log(org.apache.logging.log4j.Level.INFO,
+                    String.format("(E-Counter) Screen coords after conversion: (%d,%d) | Capturing %dx%d region",
+                        clientPoint.x, clientPoint.y, captureWidth, captureHeight));
+                debugMode = false; // Only log once to avoid spam
+            }
 
             // Verify the converted coordinates are reasonable (on screen)
             if (clientPoint.x < 0 || clientPoint.y < 0) {
