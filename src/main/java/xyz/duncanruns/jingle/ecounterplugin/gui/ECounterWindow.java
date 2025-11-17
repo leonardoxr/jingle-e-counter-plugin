@@ -115,7 +115,9 @@ public class ECounterWindow extends JFrame {
 
                 // Get top-left corner of client area in screen coordinates
                 POINT topLeft = new POINT(0, 0);
+                topLeft.write();
                 ExtendedUser32.INSTANCE.ClientToScreen(hwnd, topLeft);
+                topLeft.read();
 
                 Jingle.log(org.apache.logging.log4j.Level.INFO,
                     String.format("(E-Counter) Window: '%s' | Client size: %dx%d | Window rect: (%d,%d)-(%d,%d) | Client top-left screen pos: (%d,%d)",
@@ -127,13 +129,20 @@ public class ECounterWindow extends JFrame {
             // Convert client coordinates to screen coordinates
             // The captureX/captureY are relative to the game's client area (not including title bar)
             POINT clientPoint = new POINT(captureX, captureY);
+            clientPoint.write(); // Ensure the native structure is written before the call
 
             if (debugMode) {
                 Jingle.log(org.apache.logging.log4j.Level.INFO,
                     String.format("(E-Counter) Client coords: (%d,%d)", clientPoint.x, clientPoint.y));
             }
 
-            ExtendedUser32.INSTANCE.ClientToScreen(hwnd, clientPoint);
+            boolean success = ExtendedUser32.INSTANCE.ClientToScreen(hwnd, clientPoint);
+            clientPoint.read(); // Read back the modified values from native memory
+
+            if (!success) {
+                Jingle.log(org.apache.logging.log4j.Level.WARN, "(E-Counter) ClientToScreen failed!");
+                return;
+            }
 
             if (debugMode) {
                 Jingle.log(org.apache.logging.log4j.Level.INFO,
