@@ -4,21 +4,38 @@ import xyz.duncanruns.jingle.instance.MinecraftInstance;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 
 public class ECounterWindow extends JFrame {
-    private JLabel entityCountLabel;
-    private int currentEntityCount = 0;
+    private JLabel displayLabel;
+    private Robot robot;
+
+    // Capture settings - adjust these to match your screen
+    private int captureX = 10;  // X position relative to Minecraft window
+    private int captureY = 10;  // Y position relative to Minecraft window
+    private int captureWidth = 80;  // Width of region to capture (where "E: 0/1" appears)
+    private int captureHeight = 20; // Height of region to capture
+    private double zoomFactor = 3.0; // How much to zoom in
 
     public ECounterWindow() {
         super("E-Counter");
         setupWindow();
+        try {
+            robot = new Robot();
+        } catch (AWTException e) {
+            e.printStackTrace();
+        }
     }
 
     private void setupWindow() {
-        // Create a thin, tall window (similar to "Thin BT" style)
-        setSize(120, 200);
+        // Calculate window size based on zoom
+        int windowWidth = (int) (captureWidth * zoomFactor);
+        int windowHeight = (int) (captureHeight * zoomFactor) + 30; // +30 for title
+
+        setSize(windowWidth, windowHeight);
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         setAlwaysOnTop(true);
+        setResizable(false);
 
         // Position window at top-right corner by default
         setLocationRelativeTo(null);
@@ -30,19 +47,19 @@ public class ECounterWindow extends JFrame {
         mainPanel.setLayout(new BorderLayout());
         mainPanel.setBackground(new Color(30, 30, 30));
 
-        // Create label for entity count with large, easy-to-read font
-        entityCountLabel = new JLabel("0", SwingConstants.CENTER);
-        entityCountLabel.setFont(new Font("Arial", Font.BOLD, 48));
-        entityCountLabel.setForeground(new Color(0, 255, 100)); // Bright green for visibility
+        // Create label to display the zoomed screen capture
+        displayLabel = new JLabel("", SwingConstants.CENTER);
+        displayLabel.setBackground(new Color(30, 30, 30));
+        displayLabel.setOpaque(true);
 
         // Create title label
-        JLabel titleLabel = new JLabel("Entities", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        JLabel titleLabel = new JLabel("Entity Counter (E:)", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         titleLabel.setForeground(Color.WHITE);
 
         // Add components to panel
         mainPanel.add(titleLabel, BorderLayout.NORTH);
-        mainPanel.add(entityCountLabel, BorderLayout.CENTER);
+        mainPanel.add(displayLabel, BorderLayout.CENTER);
 
         add(mainPanel);
 
@@ -51,41 +68,73 @@ public class ECounterWindow extends JFrame {
     }
 
     public void updateFromGameData() {
-        // Get the current Minecraft instance
-        MinecraftInstance instance = MinecraftInstance.get();
-        if (instance == null) {
-            setEntityCount(0);
+        if (robot == null) {
             return;
         }
 
-        // Try to get entity count from the instance
+        // Get the current Minecraft instance
+        MinecraftInstance instance = MinecraftInstance.get();
+        if (instance == null) {
+            return;
+        }
+
         try {
-            Integer entityCount = instance.getEntities();
-            if (entityCount != null) {
-                setEntityCount(entityCount);
-            } else {
-                setEntityCount(0);
+            // Get Minecraft window position
+            Rectangle mcWindow = instance.getWindow();
+            if (mcWindow == null) {
+                return;
             }
+
+            // Calculate the screen position to capture (top-left of Minecraft window)
+            int screenX = mcWindow.x + captureX;
+            int screenY = mcWindow.y + captureY;
+
+            // Capture the screen region
+            BufferedImage capture = robot.createScreenCapture(
+                new Rectangle(screenX, screenY, captureWidth, captureHeight)
+            );
+
+            // Scale up the capture (zoom in)
+            int scaledWidth = (int) (captureWidth * zoomFactor);
+            int scaledHeight = (int) (captureHeight * zoomFactor);
+
+            BufferedImage scaled = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = scaled.createGraphics();
+
+            // Use nearest neighbor for crisp pixel scaling (better for text)
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2d.drawImage(capture, 0, 0, scaledWidth, scaledHeight, null);
+            g2d.dispose();
+
+            // Update the display on the EDT
+            SwingUtilities.invokeLater(() -> {
+                displayLabel.setIcon(new ImageIcon(scaled));
+            });
+
         } catch (Exception e) {
-            // If we can't get entity count, just keep the current value
+            // Silently ignore errors - might happen if window is minimized, etc.
         }
     }
 
-    public void setEntityCount(int count) {
-        if (this.currentEntityCount != count) {
-            this.currentEntityCount = count;
-            SwingUtilities.invokeLater(() -> {
-                entityCountLabel.setText(String.valueOf(count));
+    // Allow customization of capture region
+    public void setCaptureRegion(int x, int y, int width, int height) {
+        this.captureX = x;
+        this.captureY = y;
+        this.captureWidth = width;
+        this.captureHeight = height;
 
-                // Change color based on entity count for visual feedback
-                if (count > 50) {
-                    entityCountLabel.setForeground(new Color(255, 100, 100)); // Red for high count
-                } else if (count > 20) {
-                    entityCountLabel.setForeground(new Color(255, 255, 100)); // Yellow for medium count
-                } else {
-                    entityCountLabel.setForeground(new Color(0, 255, 100)); // Green for low count
-                }
-            });
-        }
+        // Resize window to match new dimensions
+        int windowWidth = (int) (width * zoomFactor);
+        int windowHeight = (int) (height * zoomFactor) + 30;
+        setSize(windowWidth, windowHeight);
+    }
+
+    public void setZoomFactor(double zoom) {
+        this.zoomFactor = zoom;
+
+        // Resize window to match new zoom
+        int windowWidth = (int) (captureWidth * zoom);
+        int windowHeight = (int) (captureHeight * zoom) + 30;
+        setSize(windowWidth, windowHeight);
     }
 }
