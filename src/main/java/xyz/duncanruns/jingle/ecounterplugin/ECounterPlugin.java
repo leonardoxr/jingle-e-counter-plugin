@@ -5,22 +5,21 @@ import org.apache.logging.log4j.Level;
 import xyz.duncanruns.jingle.Jingle;
 import xyz.duncanruns.jingle.JingleAppLaunch;
 import xyz.duncanruns.jingle.ecounterplugin.gui.ECounterWindow;
-import xyz.duncanruns.jingle.instance.MinecraftInstance;
 import xyz.duncanruns.jingle.plugin.PluginEvents;
 import xyz.duncanruns.jingle.plugin.PluginHotkeys;
 import xyz.duncanruns.jingle.plugin.PluginManager;
+import xyz.duncanruns.jingle.resizing.Resizing;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
 public class ECounterPlugin {
     private static ECounterWindow counterWindow;
-    private static Rectangle originalWindowSize = null;
     private static boolean isActive = false;
 
     // Thin window settings (adjustable)
     private static final int THIN_WIDTH = 400;  // Width of thin Minecraft window
+    private static final int THIN_HEIGHT = 1080;  // Height of thin Minecraft window
 
     public static void main(String[] args) throws IOException {
         // This is only used to test the plugin in the dev environment
@@ -58,11 +57,13 @@ public class ECounterPlugin {
             Jingle.log(Level.INFO, "E-Counter Plugin shutting down...");
         });
 
-        PluginEvents.RESET_INSTANCE.register(() -> {
-            // Restore window size on reset
+        PluginEvents.EXIT_WORLD.register(() -> {
+            // Restore window size on world exit
             if (isActive) {
-                restoreMinecraftWindow();
+                Resizing.undoResize();
+                counterWindow.setVisible(false);
                 isActive = false;
+                Jingle.log(Level.INFO, "(E-Counter Plugin) Auto-disabled on world exit");
             }
         });
 
@@ -70,46 +71,28 @@ public class ECounterPlugin {
     }
 
     private static void toggleECounter() {
-        MinecraftInstance instance = MinecraftInstance.get();
-        if (instance == null) {
+        if (!Jingle.getMainInstance().isPresent()) {
             Jingle.log(Level.WARN, "(E-Counter Plugin) No Minecraft instance found");
             return;
         }
 
         if (isActive) {
             // Disable: restore window and hide counter
-            restoreMinecraftWindow();
+            Resizing.undoResize();
             counterWindow.setVisible(false);
             isActive = false;
             Jingle.log(Level.INFO, "(E-Counter Plugin) Disabled - window restored");
         } else {
-            // Enable: save current size, make thin, show counter
-            Rectangle currentWindow = instance.getWindow();
-            if (currentWindow != null) {
-                originalWindowSize = new Rectangle(currentWindow);
-
-                // Make Minecraft window thin
-                int newHeight = currentWindow.height;
-                instance.setWindowSize(THIN_WIDTH, newHeight);
-
-                // Position counter window to the right of thin Minecraft window
-                counterWindow.setLocation(currentWindow.x + THIN_WIDTH + 5, currentWindow.y);
+            // Enable: make thin and show counter
+            boolean resized = Resizing.toggleResize(THIN_WIDTH, THIN_HEIGHT);
+            if (resized) {
+                // Show counter window (user can position it manually)
                 counterWindow.setVisible(true);
-
                 isActive = true;
                 Jingle.log(Level.INFO, "(E-Counter Plugin) Enabled - thin mode + counter active");
+            } else {
+                Jingle.log(Level.WARN, "(E-Counter Plugin) Failed to resize window");
             }
-        }
-    }
-
-    private static void restoreMinecraftWindow() {
-        if (originalWindowSize != null) {
-            MinecraftInstance instance = MinecraftInstance.get();
-            if (instance != null) {
-                instance.setWindowSize(originalWindowSize.width, originalWindowSize.height);
-                Jingle.log(Level.INFO, "(E-Counter Plugin) Minecraft window restored");
-            }
-            originalWindowSize = null;
         }
     }
 }

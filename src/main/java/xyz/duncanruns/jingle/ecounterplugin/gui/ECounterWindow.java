@@ -1,10 +1,14 @@
 package xyz.duncanruns.jingle.ecounterplugin.gui;
 
-import xyz.duncanruns.jingle.instance.MinecraftInstance;
+import com.sun.jna.platform.win32.WinDef.HWND;
+import com.sun.jna.platform.win32.WinDef.RECT;
+import xyz.duncanruns.jingle.Jingle;
+import xyz.duncanruns.jingle.instance.OpenedInstance;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.Optional;
 
 public class ECounterWindow extends JFrame {
     private JLabel displayLabel;
@@ -73,21 +77,22 @@ public class ECounterWindow extends JFrame {
         }
 
         // Get the current Minecraft instance
-        MinecraftInstance instance = MinecraftInstance.get();
-        if (instance == null) {
+        Optional<OpenedInstance> instanceOpt = Jingle.getMainInstance();
+        if (!instanceOpt.isPresent()) {
             return;
         }
 
+        OpenedInstance instance = instanceOpt.get();
+        HWND hwnd = instance.hwnd;
+
         try {
-            // Get Minecraft window position
-            Rectangle mcWindow = instance.getWindow();
-            if (mcWindow == null) {
-                return;
-            }
+            // Get Minecraft window bounds using JNA's native User32
+            RECT rect = new RECT();
+            com.sun.jna.platform.win32.User32.INSTANCE.GetWindowRect(hwnd, rect);
 
             // Calculate the screen position to capture (top-left of Minecraft window)
-            int screenX = mcWindow.x + captureX;
-            int screenY = mcWindow.y + captureY;
+            int screenX = rect.left + captureX;
+            int screenY = rect.top + captureY;
 
             // Capture the screen region
             BufferedImage capture = robot.createScreenCapture(
