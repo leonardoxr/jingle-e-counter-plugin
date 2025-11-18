@@ -4,6 +4,10 @@ A Jingle plugin that provides a dual-window setup: makes your Minecraft window t
 
 Perfect for speedrunning, monitoring entity counts during gameplay, or any scenario where you need to keep an eye on entities without keeping the full F3 screen open.
 
+## Warning
+
+This was totally vibe-coded.
+
 ## Features
 
 - **Dual-Window Setup**: Makes your Minecraft window thin (like "Thin BT") AND shows a zoomed entity counter beside it
