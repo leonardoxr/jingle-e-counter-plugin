@@ -40,14 +40,8 @@ public class ECounterPlugin {
             toggleECounter();
         });
 
-        // Update entity count from game data
-        PluginEvents.END_TICK.register(() -> {
-            // This gets run every tick (1 ms)
-            // We'll update the counter display here
-            if (counterWindow != null && counterWindow.isVisible()) {
-                counterWindow.updateFromGameData();
-            }
-        });
+        // The counter window now updates automatically via its internal ScheduledExecutorService
+        // No need for END_TICK event handler anymore
 
         PluginEvents.STOP.register(() -> {
             // This gets run when Jingle is shutting down
