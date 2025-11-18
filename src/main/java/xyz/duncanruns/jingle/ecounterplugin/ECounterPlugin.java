@@ -4,7 +4,9 @@ import com.google.common.io.Resources;
 import org.apache.logging.log4j.Level;
 import xyz.duncanruns.jingle.Jingle;
 import xyz.duncanruns.jingle.JingleAppLaunch;
+import xyz.duncanruns.jingle.ecounterplugin.gui.ECounterPluginPanel;
 import xyz.duncanruns.jingle.ecounterplugin.gui.ECounterWindow;
+import xyz.duncanruns.jingle.gui.JingleGUI;
 import xyz.duncanruns.jingle.plugin.PluginEvents;
 import xyz.duncanruns.jingle.plugin.PluginHotkeys;
 import xyz.duncanruns.jingle.plugin.PluginManager;
@@ -15,11 +17,8 @@ import java.nio.charset.Charset;
 
 public class ECounterPlugin {
     private static ECounterWindow counterWindow;
+    private static ECounterOptions options;
     private static boolean isActive = false;
-
-    // Thin window settings (adjustable)
-    private static final int THIN_WIDTH = 400;  // Width of thin Minecraft window
-    private static final int THIN_HEIGHT = 1080;  // Height of thin Minecraft window
 
     public static void main(String[] args) throws IOException {
         // This is only used to test the plugin in the dev environment
@@ -33,7 +32,16 @@ public class ECounterPlugin {
     public static void initialize() {
         // This gets run once when Jingle launches
 
+        // Load options from disk (or create defaults)
+        options = ECounterOptions.load().orElse(new ECounterOptions());
+
+        // Create counter window with loaded settings
         counterWindow = new ECounterWindow();
+        applyOptionsToWindow();
+
+        // Create and register plugin panel in Jingle GUI
+        ECounterPluginPanel pluginPanel = new ECounterPluginPanel(options);
+        JingleGUI.addPluginTab("E-Counter", pluginPanel.mainPanel, pluginPanel::onSwitchTo);
 
         // Add hotkey to toggle the counter window and thin mode
         PluginHotkeys.addHotkeyAction("Toggle E-Counter (Thin + Zoom)", () -> {
@@ -64,6 +72,20 @@ public class ECounterPlugin {
         Jingle.log(Level.INFO, "E-Counter Plugin Initialized");
     }
 
+    /**
+     * Apply current options to the counter window.
+     * Called from the plugin panel when settings are changed.
+     */
+    public static void applyOptionsToWindow() {
+        if (counterWindow != null && options != null) {
+            counterWindow.setCaptureRegion(options.captureX, options.captureY,
+                                          options.captureWidth, options.captureHeight);
+            counterWindow.setZoomFactor(options.zoomFactor);
+            counterWindow.setFpsLimit(options.fpsLimit);
+            Jingle.log(Level.INFO, "(E-Counter) Applied options to window");
+        }
+    }
+
     private static void toggleECounter() {
         if (!Jingle.getMainInstance().isPresent()) {
             Jingle.log(Level.WARN, "(E-Counter Plugin) No Minecraft instance found");
@@ -77,13 +99,14 @@ public class ECounterPlugin {
             isActive = false;
             Jingle.log(Level.INFO, "(E-Counter Plugin) Disabled - window restored");
         } else {
-            // Enable: make thin and show counter
-            boolean resized = Resizing.toggleResize(THIN_WIDTH, THIN_HEIGHT);
+            // Enable: make thin and show counter using configured dimensions
+            boolean resized = Resizing.toggleResize(options.thinWidth, options.thinHeight);
             if (resized) {
                 // Show counter window (user can position it manually)
                 counterWindow.setVisible(true);
                 isActive = true;
-                Jingle.log(Level.INFO, "(E-Counter Plugin) Enabled - thin mode + counter active");
+                Jingle.log(Level.INFO, String.format("(E-Counter Plugin) Enabled - thin mode (%dx%d) + counter active",
+                        options.thinWidth, options.thinHeight));
             } else {
                 Jingle.log(Level.WARN, "(E-Counter Plugin) Failed to resize window");
             }

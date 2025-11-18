@@ -104,12 +104,10 @@ public class ECounterWindow extends JFrame {
         if (displayHwnd == null) {
             // Get native window handle for this JFrame
             try {
-                // Use reflection to get the peer's HWND
-                java.awt.peer.ComponentPeer peer = ((java.awt.Component) this).getPeer();
-                if (peer != null) {
-                    // On Windows, we can get the HWND from the peer
-                    long hwndValue = com.sun.jna.Native.getComponentPointer((java.awt.Component) this);
-                    displayHwnd = new HWND(new com.sun.jna.Pointer(hwndValue));
+                // Use JNA to get the native window pointer
+                com.sun.jna.Pointer pointer = com.sun.jna.Native.getComponentPointer(this);
+                if (pointer != null) {
+                    displayHwnd = new HWND(pointer);
                 }
             } catch (Exception e) {
                 Jingle.log(org.apache.logging.log4j.Level.ERROR, "(E-Counter) Failed to get window HWND: " + e.getMessage());
