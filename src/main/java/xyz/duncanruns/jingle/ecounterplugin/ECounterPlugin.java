@@ -1,12 +1,15 @@
 package xyz.duncanruns.jingle.ecounterplugin;
 
 import com.google.common.io.Resources;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef.HWND;
 import org.apache.logging.log4j.Level;
 import xyz.duncanruns.jingle.Jingle;
 import xyz.duncanruns.jingle.JingleAppLaunch;
 import xyz.duncanruns.jingle.ecounterplugin.gui.ECounterPluginPanel;
 import xyz.duncanruns.jingle.ecounterplugin.gui.ECounterWindow;
 import xyz.duncanruns.jingle.gui.JingleGUI;
+import xyz.duncanruns.jingle.instance.OpenedInstance;
 import xyz.duncanruns.jingle.plugin.PluginEvents;
 import xyz.duncanruns.jingle.plugin.PluginHotkeys;
 import xyz.duncanruns.jingle.plugin.PluginManager;
@@ -14,6 +17,7 @@ import xyz.duncanruns.jingle.resizing.Resizing;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Optional;
 
 public class ECounterPlugin {
     private static ECounterWindow counterWindow;
@@ -87,8 +91,25 @@ public class ECounterPlugin {
     }
 
     private static void toggleECounter() {
-        if (!Jingle.getMainInstance().isPresent()) {
+        Optional<OpenedInstance> instanceOpt = Jingle.getMainInstance();
+        if (!instanceOpt.isPresent()) {
             Jingle.log(Level.WARN, "(E-Counter Plugin) No Minecraft instance found");
+            return;
+        }
+
+        OpenedInstance instance = instanceOpt.get();
+        HWND minecraftHwnd = instance.hwnd;
+
+        // Check if Minecraft window is focused (foreground window)
+        HWND foregroundWindow = User32.INSTANCE.GetForegroundWindow();
+        if (foregroundWindow == null || !foregroundWindow.equals(minecraftHwnd)) {
+            Jingle.log(Level.DEBUG, "(E-Counter Plugin) Hotkey ignored - Minecraft window not focused");
+            return;
+        }
+
+        // Check if Minecraft window is visible and valid
+        if (!User32.INSTANCE.IsWindow(minecraftHwnd) || !User32.INSTANCE.IsWindowVisible(minecraftHwnd)) {
+            Jingle.log(Level.WARN, "(E-Counter Plugin) Minecraft window not valid or not visible");
             return;
         }
 
