@@ -8,8 +8,9 @@ version = project.plugin_version
 archivesBaseName = project.archives_base_name
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
@@ -19,6 +20,7 @@ repositories {
 }
 
 compileJava {
+    options.release = 8
     options.compilerArgs << '-parameters'
 }
 
