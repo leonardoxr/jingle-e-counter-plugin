@@ -51,6 +51,11 @@ public class ECounterWindow extends JFrame {
         setResizable(false);
         setUndecorated(true); // Remove window decorations for cleaner look
 
+        // Make window non-focusable to prevent it from stealing focus or affecting mouse behavior
+        // This matches the behavior of Jingle-EyeSee-Plugin
+        setFocusableWindowState(false);
+        setFocusable(false);
+
         // Position window at top-right corner by default
         setLocationRelativeTo(null);
         Point location = getLocation();
@@ -67,6 +72,7 @@ public class ECounterWindow extends JFrame {
         };
         displayPanel.setBackground(new Color(30, 30, 30));
         displayPanel.setPreferredSize(new Dimension(windowWidth, windowHeight));
+        displayPanel.setFocusable(false); // Ensure panel doesn't steal focus
 
         add(displayPanel);
 
